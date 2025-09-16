@@ -1,0 +1,96 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+# Test/validation workflow
+name: 'Test Helm Chart Build'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  CHART_NAME: 'test-chart-0.1.0.tgz'
+
+jobs:
+  ### Test the GitHub Action in this Repository ###
+  tests:
+    name: 'Test Helm Chart Build'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10 # Increase this timeout value as needed
+    steps:
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Install required dependencies
+      - name: 'Install Helm'
+        # yamllint disable-line rule:line-length
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
+        with:
+          version: 'latest'
+
+      # Perform setup prior to running test(s)
+      - name: 'Build Helm Chart'
+        run: |
+          # Build Helm Chart
+          if (make build); then
+            echo "✅ Helm chart built successfully "
+            echo "## ✅ Helm chart built successfully" \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Failed to build Helm chart"
+            echo "## ❌ Failed to build Helm chart" \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      # Validate the built chart
+      - name: 'Validate Helm Chart'
+        run: |
+          # Check if the expected artifact was created
+          if [[ -f "${{ env.CHART_NAME }}" ]]; then
+            echo "✅ Chart package created: ${{ env.CHART_NAME }}"
+            echo "✅ Chart package created: ${{ env.CHART_NAME }}" \
+              >> "$GITHUB_STEP_SUMMARY"
+
+            # Show package details
+            ls -la "${{ env.CHART_NAME }}"
+
+            # Lint the chart
+            helm lint charts/test-chart
+
+            # Test template rendering
+            helm template test charts/test-chart > /dev/null
+
+            echo "✅ Chart validation completed successfully"
+            echo "✅ Chart validation completed successfully" \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Chart package not found: ${{ env.CHART_NAME }}"
+            echo "❌ Chart package not found: ${{ env.CHART_NAME }}" \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      # Upload the built chart as an artifact
+      - name: 'Upload Helm Chart Artifact'
+        # yamllint disable-line rule:line-length
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.1
+        with:
+          name: helm-chart
+          path: ${{ env.CHART_NAME }}
+          retention-days: 90
+          if-no-files-found: error
