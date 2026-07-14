@@ -68,13 +68,13 @@ jobs:
       - name: 'Validate Helm Chart'
         run: |
           # Check if the expected artifact was created
-          if [[ -f "${{ env.CHART_NAME }}" ]]; then
-            echo "✅ Chart package created: ${{ env.CHART_NAME }}"
-            echo "✅ Chart package created: ${{ env.CHART_NAME }}" \
+          if [[ -f "$CHART_NAME" ]]; then
+            echo "✅ Chart package created: $CHART_NAME"
+            echo "✅ Chart package created: $CHART_NAME" \
               >> "$GITHUB_STEP_SUMMARY"
 
             # Show package details
-            ls -la "${{ env.CHART_NAME }}"
+            ls -la "$CHART_NAME"
 
             # Lint the chart
             helm lint charts/test-chart
@@ -86,8 +86,8 @@ jobs:
             echo "✅ Chart validation completed successfully" \
               >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ Chart package not found: ${{ env.CHART_NAME }}"
-            echo "❌ Chart package not found: ${{ env.CHART_NAME }}" \
+            echo "❌ Chart package not found: $CHART_NAME"
+            echo "❌ Chart package not found: $CHART_NAME" \
               >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
