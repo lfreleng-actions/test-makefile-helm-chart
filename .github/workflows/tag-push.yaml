@@ -11,6 +11,11 @@ on:
     tags:
       - '**'
 
+# Serialise release runs per tag; do not cancel an in-progress release
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: false
+
 permissions: {}
 
 jobs:
@@ -20,7 +25,7 @@ jobs:
     if: "!github.event.deleted"
     runs-on: 'ubuntu-latest'
     permissions:
-      contents: read
+      contents: read  # Read repository contents for tag validation
     timeout-minutes: 5
     outputs:
       tag: "${{ steps.tag_validate.outputs.tag_name }}"
@@ -53,7 +58,7 @@ jobs:
     needs: validate_tag
     runs-on: 'ubuntu-latest'
     permissions:
-      contents: write
+      contents: write  # Promote (publish) the draft GitHub release
     timeout-minutes: 5
     steps:
       # Harden the runner used by this workflow
